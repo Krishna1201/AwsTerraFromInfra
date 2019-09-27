@@ -1,0 +1,13 @@
+{
+    "MajorVersion": "0.1.0",
+    "Versions": {
+        "Margin.Domain":
+        {
+            "Version":"Margin.Domain-0.20.2"
+        },
+        "CashMovement.Domain":
+        {
+            "Version":"CashMovement.Domain-0.7.6"
+        }
+    }
+}

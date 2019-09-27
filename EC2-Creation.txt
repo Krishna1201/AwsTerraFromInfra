@@ -1,0 +1,115 @@
+# DHCP and DNS Zone
+# ==============================================================
+resource "aws_vpc_dhcp_options" "Devops1dhcp" {
+    domain_name = "${var.DnsZoneName}"
+    domain_name_servers = ["AmazonProvidedDNS"]
+    tags {
+        Name = "DevOpsOne - internal zone"
+    }
+}
+
+resource "aws_vpc_dhcp_options_association" "dns_resolver" {
+    vpc_id = "${aws_vpc.DevOpsOne.id}"
+    dhcp_options_id = "${aws_vpc_dhcp_options.Devops1dhcp.id}"
+}
+
+resource "aws_route53_zone" "main" {
+    name = "${var.DnsZoneName}"   
+    comment = "Managed by terraform"
+}
+
+# Resources - EC2 Instances
+# ==============================================================
+# Setup webserver on public subnet
+resource "aws_instance" "wb" {
+   ami  = "${var.ami}"
+   instance_type = "t2.micro"
+   key_name = "${var.key_name}"
+   subnet_id = "${aws_subnet.public-subnet.id}"
+   vpc_security_group_ids = ["${aws_security_group.sg-public.id}"]
+   associate_public_ip_address = true
+   source_dest_check = false
+   user_data = "${file("install_web.sh")}"
+
+  tags {
+    Name = "webserver"
+  }
+}
+
+resource "aws_instance" "bastion" {
+  ami  = "${var.ami_win}"
+  instance_type = "t2.micro"
+  key_name = "${var.key_name}"
+  subnet_id = "${aws_subnet.public-subnet.id}"
+  vpc_security_group_ids = ["${aws_security_group.sg-public.id}"]
+  associate_public_ip_address = true
+  source_dest_check = false
+
+  user_data = <<EOF
+  <powershell>
+  net user ${var.instance_username} "${var.instance_password}" /add /y
+  net localgroup administrators ${var.instance_username} /add
+  @echo off
+  (
+  echo.Windows Registry Editor Version 5.00
+  echo.
+  echo.[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Active Setup\Installed Components\]
+  echo."IsInstalled"=dword:00000000
+  echo.[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Active Setup\Installed Components\{A509B1A8-37EF-4b3f-8CFC-4F3A74704073}]
+  echo."IsInstalled"=dword:00000000
+  echo.
+  ) >file.reg
+  regedit.exe /s file.reg
+  </powershell>
+  EOF
+
+  tags {
+    Name = "bastion"
+  }
+}
+
+# Setup database on private subnet
+resource "aws_instance" "db" {
+   ami  = "${var.ami}"
+   instance_type = "t2.micro"
+   key_name = "${var.key_name}"
+   subnet_id = "${aws_subnet.private-subnet.id}"
+   vpc_security_group_ids = ["${aws_security_group.sg-private.id}"]
+   source_dest_check = false
+   user_data = "${file("install_db.sh")}"
+
+  tags {
+    Name = "database"
+  }
+}
+
+# setup Jenkins Server on private subnet
+resource "aws_instance" "jenkins" {
+   ami  = "${var.ami}"
+   instance_type = "t2.micro"
+   key_name = "${var.key_name}"
+   subnet_id = "${aws_subnet.private-subnet.id}"
+   vpc_security_group_ids = ["${aws_security_group.sg-private.id}"]
+   source_dest_check = false
+   user_data = "${file("install_jenkins.sh")}"
+
+  tags {
+    Name = "jenkins"
+  }
+}
+
+# Setup Docker Host on private subnet
+resource "aws_instance" "docker-host" {
+   ami  = "${var.ami}"
+   instance_type = "t2.micro"
+   key_name = "${var.key_name}"
+   subnet_id = "${aws_subnet.private-subnet.id}"
+   vpc_security_group_ids = ["${aws_security_group.sg-private.id}"]
+   source_dest_check = false
+   user_data = "${file("install_docker.sh")}"
+
+  tags {
+    Name = "docker-host"
+  }
+}
+© 2019 GitHub, Inc.

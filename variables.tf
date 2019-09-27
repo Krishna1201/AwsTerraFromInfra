@@ -1,8 +1,10 @@
 variable "aws_access_key" {
   description = "Aws Account Access Key"
+  default     = "AKIAJN22HA3YVN4NYGTA"
   }
 variable "aws_secret_key" {
     description = "Aws Account Secret Key"
+    default     ="FIHBHW1I4YkqbaiU7rtNwdYFfUCDpeAXZ0HFuDXT"
 }
 variable "aws_region" {
    description = "EC2 Region for the VPC"

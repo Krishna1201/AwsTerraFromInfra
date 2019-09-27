@@ -1,6 +1,6 @@
 variable "aws_access_key" {
   description = "Aws Account Access Key"
-  default     = "AKIAJN22HA3YVN4NYGTA"
+  default     = ""
   }
 variable "aws_secret_key" {
     description = "Aws Account Secret Key"

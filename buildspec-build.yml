@@ -1,0 +1,46 @@
+version: 0.2
+run-as: root
+env:
+  variables:
+    TF_FILES: ""
+    NAME: ""
+    ENV: ""
+phases:
+    install:
+        run-as: root
+        runtime-versions:
+          dotnet: 2.2
+        commands:
+            - echo "Entering install phase..."
+    pre_build:
+        commands:
+            - echo "Entering build phase..."
+    build:
+        run-as: root
+        commands:
+            - echo "Entering build phase..."
+            - echo Build started on `date`
+            - cd /bin
+            - ln -sf bash sh
+            - chsh -s /bin/bash $(whoami)
+            - unset AWS_ACCESS_KEY_ID && unset AWS_SECRET_ACCESS_KEY && unset AWS_SESSION_TOKEN
+            - creds=`aws sts assume-role --role-arn "arn:aws:iam::924289411007:role/human-role/a204309-Developer" --role-session-name a204309-cicd-deployment --region=us-east-1 | jq -r '.Credentials'`
+            - export AWS_ACCESS_KEY_ID=`echo $creds | jq -r '.AccessKeyId'` && export AWS_SECRET_ACCESS_KEY=`echo $creds | jq -r '.SecretAccessKey'` && export AWS_SESSION_TOKEN=`echo $creds | jq -r '.SessionToken'`
+            - cd $CODEBUILD_SRC_DIR
+            - bash script.sh
+            - bash tag.sh
+    post_build:
+        commands:
+          - |
+            if [[ "$CODEBUILD_BUILD_SUCCEEDING" == "1" ]];
+            then
+            echo "Completed Terraform Apply phase in QA Successfully on `date`";
+            elif [[ "$CODEBUILD_BUILD_SUCCEEDING" == "0" ]];
+            then
+            echo "Terraform Apply phase in QA Failed on `date`, rolling back to last successfully deployed version $VERSION";
+            fi
+artifacts:
+  files:
+    - '**/*'
+  name: a204309-qa-apply-$(date +%Y-%m-%d)
+  discard-paths: no

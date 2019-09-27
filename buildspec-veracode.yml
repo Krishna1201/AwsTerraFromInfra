@@ -1,0 +1,28 @@
+version: 0.2
+env:
+  parameter-store:
+    JFROG_KEY: "/a204309/a204309-jfrog-apikey"
+    VERACODE_ID: "/a204309/a204309-veracode-api-id"
+    VERACODE_KEY: "/a204309/a204309-veracode-apisecret"
+  variables:
+    VERACODE_WRAPPER_VERSION: ""
+phases:
+  install:
+      run-as: root
+      runtime-versions:
+        dotnet: 2.2
+      commands:
+        - wget -q -O veracode-wrapper.jar https://repo1.maven.org/maven2/com/veracode/vosp/api/wrappers/vosp-api-wrappers-java/${VERACODE_WRAPPER_VERSION}/vosp-api-wrappers-java-${VERACODE_WRAPPER_VERSION}.jar
+  build:
+      run-as: root
+      commands:
+        - bash veracode.sh
+  post_build:
+      commands:
+        - echo " Entering post build phase... "
+        - echo Completed Code Scan using Veracode on `date`
+artifacts:
+  files:
+  - '**/*'
+  name: a204309-sonarqube-$(date +%Y-%m-%d)
+  discard-paths: no
